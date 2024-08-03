@@ -3,7 +3,7 @@
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
 
-_Integration to integrate with [SMART Tag parent portal][https://parent.smart-tag.net]._
+_Integration to integrate with [SMART Tag parent portal](https://parent.smart-tag.net)._
 
 **This integration will set up the following platforms for each student:**
 
