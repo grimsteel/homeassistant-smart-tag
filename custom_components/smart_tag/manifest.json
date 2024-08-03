@@ -1,0 +1,12 @@
+{
+  "domain": "smart_tag",
+  "name": "SMART Tag",
+  "codeowners": [
+    "@grimsteel"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/grimsteel/smart_tag",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/grimsteel/smart_tag/issues",
+  "version": "0.0.1"
+}
