@@ -9,11 +9,19 @@ select = [
 
 ignore = [
     "ANN101", # Missing type annotation for `self` in method
+    "ANN201", # return types can be inferred,
+    "ANN202",
     "ANN401", # Dynamically typed expressions (typing.Any) are disallowed
     "D203", # no-blank-line-before-class (incompatible with formatter)
     "D212", # multi-line-summary-first-line (incompatible with formatter)
     "COM812", # incompatible with formatter
     "ISC001", # incompatible with formatter
+    "T201", # print not found...
+    "PLR2004", # magic values are ok when they're not magic
+    "EM101",
+    "TRY003",
+    "D400",
+    "D415", # this isn't english class
 ]
 
 [lint.flake8-pytest-style]

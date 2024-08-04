@@ -9,18 +9,20 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
+from homeassistant.const import Platform
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
 
-from .api import IntegrationBlueprintApiClient
-from .coordinator import BlueprintDataUpdateCoordinator
-from .data import IntegrationBlueprintData
+from custom_components.smart_tag.const import CONF_API_CLIENT
+
+from .api import SmartTagApiClient
+from .coordinator import SmartTagCoordinator
+from .data import SmartTagData
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    from .data import IntegrationBlueprintConfigEntry
+    from .data import SmartTagEntry
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
@@ -32,16 +34,14 @@ PLATFORMS: list[Platform] = [
 # https://developers.home-assistant.io/docs/config_entries_index/#setting-up-an-entry
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: IntegrationBlueprintConfigEntry,
+    entry: SmartTagEntry,
 ) -> bool:
     """Set up this integration using UI."""
-    coordinator = BlueprintDataUpdateCoordinator(
+    coordinator = SmartTagCoordinator(
         hass=hass,
     )
-    entry.runtime_data = IntegrationBlueprintData(
-        client=IntegrationBlueprintApiClient(
-            username=entry.data[CONF_USERNAME],
-            password=entry.data[CONF_PASSWORD],
+    entry.runtime_data = SmartTagData(
+        client=entry.data[CONF_API_CLIENT] or SmartTagApiClient(
             session=async_get_clientsession(hass),
         ),
         integration=async_get_loaded_integration(hass, entry.domain),
@@ -59,7 +59,7 @@ async def async_setup_entry(
 
 async def async_unload_entry(
     hass: HomeAssistant,
-    entry: IntegrationBlueprintConfigEntry,
+    entry: SmartTagEntry,
 ) -> bool:
     """Handle removal of an entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
@@ -67,7 +67,7 @@ async def async_unload_entry(
 
 async def async_reload_entry(
     hass: HomeAssistant,
-    entry: IntegrationBlueprintConfigEntry,
+    entry: SmartTagEntry,
 ) -> None:
     """Reload config entry."""
     await async_unload_entry(hass, entry)

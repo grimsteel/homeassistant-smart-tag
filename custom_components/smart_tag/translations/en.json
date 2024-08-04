@@ -2,17 +2,23 @@
     "config": {
         "step": {
             "user": {
-                "description": "If you need help with the configuration have a look here: https://github.com/ludeeus/integration_blueprint",
+                "description": "Log in to your SMART Tag Parent Portal account",
                 "data": {
-                    "username": "Username",
+                    "email": "Email",
                     "password": "Password"
+                }
+            },
+            "choose_student": {
+                "title": "Choose Student",
+                "data": {
+                    "student": "Student:"
                 }
             }
         },
         "error": {
-            "auth": "Username/Password is wrong.",
+            "auth": "Invalid email or password.",
             "no_students": "No students are linked to that account.",
-            "connection": "Unable to connect to the server.",
+            "network": "A network error occurred.",
             "unknown": "Unknown error occurred."
         },
         "abort": {
