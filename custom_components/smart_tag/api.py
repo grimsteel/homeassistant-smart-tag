@@ -12,6 +12,7 @@ from custom_components.smart_tag.data import Student
 
 API_ORIGIN = URL("https://api-parentapp-prod.azurewebsites.net/")
 
+
 class SmartTagApiError(Exception):
     """Exception to indicate a general API error."""
 
@@ -32,6 +33,7 @@ def _raise_response_error(response: aiohttp.ClientResponse) -> None:
     if response.status not in (400, 404):
         response.raise_for_status()
 
+
 class SmartTagApiClient:
     """API client for the new SMART tag backend."""
 
@@ -42,7 +44,7 @@ class SmartTagApiClient:
         self,
         session: aiohttp.ClientSession,
         refresh_token: str | None = None,
-        api_origin: URL = API_ORIGIN
+        api_origin: URL = API_ORIGIN,
     ) -> None:
         """Initialize the API client"""
         self._api_origin = api_origin
@@ -55,12 +57,7 @@ class SmartTagApiClient:
         self._access_token = None
 
         response = await self._api_wrapper(
-            "POST",
-            "user/login",
-            {
-                "username": email,
-                "password": password
-            }
+            "POST", "user/login", {"username": email, "password": password}
         )
         if response.status == 400:
             # invalid auth credentials
@@ -79,15 +76,15 @@ class SmartTagApiClient:
         if self._access_token is None:
             raise SmartTagApiAuthError("not authenticated")
 
-        response = await self._api_wrapper(
-            "GET",
-            "parent/all-students"
-        )
+        response = await self._api_wrapper("GET", "parent/all-students")
 
         students = [Student.from_dict(d) for d in await response.json()]
         print(students)
 
         return students
+
+    async def get_rides(self, student_id: str, limit: int):
+        """Get the {limit} most recent rides for this student"""
 
     async def _api_wrapper(
         self,
@@ -97,9 +94,11 @@ class SmartTagApiClient:
     ):
         """SMART Tag API wrapper with error handling."""
         # add bearer token
-        headers = {
-            "Authorization": f"Bearer {self._access_token}"
-        } if self._access_token is not None else None
+        headers = (
+            {"Authorization": f"Bearer {self._access_token}"}
+            if self._access_token is not None
+            else None
+        )
 
         try:
             async with async_timeout.timeout(10):
@@ -114,16 +113,10 @@ class SmartTagApiClient:
 
         except TimeoutError as exception:
             err = f"Timeout error fetching information - {exception}"
-            raise SmartTagApiNetworkError(
-                err
-            ) from exception
+            raise SmartTagApiNetworkError(err) from exception
         except (aiohttp.ClientError, socket.gaierror) as exception:
             err = f"Error fetching information - {exception}"
-            raise SmartTagApiNetworkError(
-                err
-            ) from exception
+            raise SmartTagApiNetworkError(err) from exception
         except Exception as exception:  # pylint: disable=broad-except
             err = f"Something really wrong happened! - {exception}"
-            raise SmartTagApiError(
-                err
-            ) from exception
+            raise SmartTagApiError(err) from exception

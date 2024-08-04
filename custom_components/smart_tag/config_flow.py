@@ -35,16 +35,13 @@ class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> data_entry_flow.FlowResult:
         """Handle a flow initialized by the user."""
         if self._api_client is None:
-            self._api_client = SmartTagApiClient(
-                async_create_clientsession(self.hass)
-            )
+            self._api_client = SmartTagApiClient(async_create_clientsession(self.hass))
 
         _errors = {}
         if user_input is not None:
             try:
                 await self._api_client.login(
-                    user_input[CONF_EMAIL],
-                    user_input[CONF_PASSWORD]
+                    user_input[CONF_EMAIL], user_input[CONF_PASSWORD]
                 )
             except SmartTagApiAuthError as exception:
                 LOGGER.warning(exception)
@@ -65,7 +62,9 @@ class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_EMAIL,
                         # prefill with the email they entered
-                        default=user_input.get(CONF_EMAIL, vol.UNDEFINED) if user_input else vol.UNDEFINED,
+                        default=user_input.get(CONF_EMAIL, vol.UNDEFINED)
+                        if user_input
+                        else vol.UNDEFINED,
                     ): selector.TextSelector(
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.EMAIL,
@@ -81,20 +80,30 @@ class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=_errors,
         )
 
-    async def async_step_choose_student(
-            self,
-            user_input: dict | None = None
-    ):
+    async def async_step_choose_student(self, user_input: dict | None = None):
         """Prompt the user to select one of their students."""
         if self._api_client is None:
             raise InvalidStateError("invalid state")
 
         _errors = {}
         if user_input is not None:
-            pass
+            self._student_id = int(user_input[CONF_STUDENT])
+            return await self.async_step_choose_times()
+
+        students = []
 
         # load a list of students
-        students = await self._api_client.get_students()
+        try:
+            students = await self._api_client.get_students()
+        except SmartTagApiAuthError as exception:
+            LOGGER.warning(exception)
+            _errors["base"] = "auth"
+        except SmartTagApiNetworkError as exception:
+            LOGGER.error(exception)
+            _errors["base"] = "connection"
+        except SmartTagApiError as exception:
+            LOGGER.exception(exception)
+            _errors["base"] = "unknown"
 
         return self.async_show_form(
             step_id="choose_student",
@@ -102,18 +111,31 @@ class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_STUDENT): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            mode = selector.SelectSelectorMode.LIST,
-                            options = [
+                            # radio buttons
+                            mode=selector.SelectSelectorMode.LIST,
+                            options=[
+                                # one option for each student
                                 selector.SelectOptionDict(
-                                    value = str(student.id),
-                                    label =
-                                     f"{student.full_name} ({student.grade}) #{student.external_id}"
+                                    value=str(student.id),
+                                    label=f"{student.full_name} ({student.grade}) #{student.external_id}",
                                 )
                                 for student in students
-                            ]
+                            ],
                         )
                     )
                 }
             ),
-            errors=_errors
+            errors=_errors,
         )
+
+    async def async_step_choose_times(self, user_input: dict | None = None):
+        """Ask the user to select the polling times"""
+        if self._api_client is None or self._student_id is None:
+            raise InvalidStateError("invalid state")
+
+        _errors = {}
+
+        if user_input is not None:
+            pass
+
+        # get the 50 most recent rides

@@ -41,7 +41,8 @@ async def async_setup_entry(
         hass=hass,
     )
     entry.runtime_data = SmartTagData(
-        client=entry.data[CONF_API_CLIENT] or SmartTagApiClient(
+        client=entry.data[CONF_API_CLIENT]
+        or SmartTagApiClient(
             session=async_get_clientsession(hass),
         ),
         integration=async_get_loaded_integration(hass, entry.domain),
