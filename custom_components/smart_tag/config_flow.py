@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries, data_entry_flow
-from homeassistant.const import CONF_PASSWORD, CONF_EMAIL
+from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
+from homeassistant.exceptions import InvalidStateError
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from .api import (
+    SmartTagApiAuthError,
     SmartTagApiClient,
     SmartTagApiError,
     SmartTagApiNetworkError,
-    SmartTagApiAuthError
 )
 from .const import CONF_STUDENT, DOMAIN, LOGGER
 
@@ -22,7 +23,8 @@ class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the class"""
         super().__init__()
 
         self._api_client = None
@@ -36,7 +38,7 @@ class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._api_client = SmartTagApiClient(
                 async_create_clientsession(self.hass)
             )
-        
+
         _errors = {}
         if user_input is not None:
             try:
@@ -84,17 +86,16 @@ class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             user_input: dict | None = None
     ):
         """Prompt the user to select one of their students."""
-
         if self._api_client is None:
-            raise Exception("invalid state")
-        
+            raise InvalidStateError("invalid state")
+
         _errors = {}
         if user_input is not None:
             pass
 
         # load a list of students
         students = await self._api_client.get_students()
-        
+
         return self.async_show_form(
             step_id="choose_student",
             data_schema=vol.Schema(
@@ -105,7 +106,8 @@ class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             options = [
                                 selector.SelectOptionDict(
                                     value = str(student.id),
-                                    label = f"{student.fullName} ({student.grade}) #{student.externalId}"
+                                    label =
+                                     f"{student.full_name} ({student.grade}) #{student.external_id}"
                                 )
                                 for student in students
                             ]

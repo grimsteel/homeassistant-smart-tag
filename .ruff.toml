@@ -22,6 +22,7 @@ ignore = [
     "TRY003",
     "D400",
     "D415", # this isn't english class
+    "E501", # my screen is wider than 10 centimeters
 ]
 
 [lint.flake8-pytest-style]

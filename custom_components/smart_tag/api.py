@@ -76,7 +76,6 @@ class SmartTagApiClient:
 
     async def get_students(self):
         """Get a list of the user's students."""
-
         if self._access_token is None:
             raise SmartTagApiAuthError("not authenticated")
 
@@ -97,12 +96,11 @@ class SmartTagApiClient:
         data: dict | None = None,
     ):
         """SMART Tag API wrapper with error handling."""
-
         # add bearer token
         headers = {
             "Authorization": f"Bearer {self._access_token}"
         } if self._access_token is not None else None
-        
+
         try:
             async with async_timeout.timeout(10):
                 response = await self._session.request(

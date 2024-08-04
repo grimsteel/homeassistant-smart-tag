@@ -26,18 +26,21 @@ class SmartTagData:
 
 @dataclass
 class Student:
+    """A student from the SMART Tag portal"""
+
     @classmethod
-    def from_dict(cls, value: dict):
+    def from_dict(cls, value: dict) -> Student:
+        """Convert a dict to a Student."""
         return cls(
             campus = value["campus"],
-            externalId = value["externalId"],
-            fullName = value["fullName"],
+            external_id = value["externalId"],
+            full_name = value["fullName"],
             id = value["id"],
             grade = value["grade"]
         )
-    
+
     campus: str
-    externalId: str
-    fullName: str
+    external_id: str
+    full_name: str
     id: int
     grade: str
