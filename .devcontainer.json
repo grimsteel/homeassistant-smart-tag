@@ -2,6 +2,7 @@
     "name": "grimsteel/homeassistant-smart-tag",
     "image": "mcr.microsoft.com/devcontainers/python:3.12",
     "postCreateCommand": "scripts/setup",
+    "appPort": ["8123:8123"],
     "forwardPorts": [
         8123
     ],
@@ -39,3 +40,12 @@
     "remoteUser": "vscode",
     "features": {}
 }
+
+
+
+
+
+
+
+
+

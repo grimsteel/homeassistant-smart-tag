@@ -11,8 +11,12 @@
         },
         "error": {
             "auth": "Username/Password is wrong.",
+            "no_students": "No students are linked to that account.",
             "connection": "Unable to connect to the server.",
             "unknown": "Unknown error occurred."
+        },
+        "abort": {
+            "already_configured": "This student has already been configured"
         }
     }
 }

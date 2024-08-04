@@ -1,8 +1,8 @@
 """
-Custom integration to integrate integration_blueprint with Home Assistant.
+Custom integration to integrate smart_tag with Home Assistant.
 
 For more details about this integration, please refer to
-https://github.com/ludeeus/integration_blueprint
+to https://github.com/grimsteel/homeassistant-smart-tag
 """
 
 from __future__ import annotations

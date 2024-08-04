@@ -1,4 +1,4 @@
-"""Constants for integration_blueprint."""
+"""Constants for smart_tag"""
 
 from logging import Logger, getLogger
 

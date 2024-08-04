@@ -7,95 +7,93 @@ from typing import Any
 
 import aiohttp
 import async_timeout
+from yarl import URL
 
 
-class IntegrationBlueprintApiClientError(Exception):
+class SmartTagApiError(Exception):
     """Exception to indicate a general API error."""
 
 
-class IntegrationBlueprintApiClientCommunicationError(
-    IntegrationBlueprintApiClientError,
-):
-    """Exception to indicate a communication error."""
+class SmartTagApiNetworkError(SmartTagApiError):
+    """Exception to indicate a network error"""
 
 
-class IntegrationBlueprintApiClientAuthenticationError(
-    IntegrationBlueprintApiClientError,
-):
+class SmartTagApiAuthError(SmartTagApiError):
     """Exception to indicate an authentication error."""
 
 
-def _verify_response_or_raise(response: aiohttp.ClientResponse) -> None:
-    """Verify that the response is valid."""
+def _raise_response_error(response: aiohttp.ClientResponse) -> None:
+    """Raise an error based on the response code"""
     if response.status in (401, 403):
-        msg = "Invalid credentials"
-        raise IntegrationBlueprintApiClientAuthenticationError(
-            msg,
-        )
-    response.raise_for_status()
+        raise SmartTagApiAuthError("invalid or expired credentials")
+    # handle 400/404 manually
+    if response.status not in (400, 404):
+        response.raise_for_status()
 
 
-class IntegrationBlueprintApiClient:
-    """Sample API Client."""
+class SmartTagApiClient:
+    """API client for the new SMART tag backend"""
+
+    _access_token = None
+    _refresh_token = None
 
     def __init__(
         self,
-        username: str,
-        password: str,
         session: aiohttp.ClientSession,
+        refresh_token: str | None = None,
+        api_origin: URL = URL("https://parent.smart-tag.net/")
     ) -> None:
-        """Sample API Client."""
-        self._username = username
-        self._password = password
+        self._api_origin = api_origin
+        self._refresh_token = refresh_token
         self._session = session
 
-    async def async_get_data(self) -> Any:
+    async def login(self, email: str, password: str):
+        self._refresh_token = None
+        self._access_token = None
+        
         """Get data from the API."""
-        return await self._api_wrapper(
-            method="get",
-            url="https://jsonplaceholder.typicode.com/posts/1",
+        response = await self._api_wrapper(
+            "POST",
+            "/user/login",
+            {
+                "username": email,
+                "password": password
+            }
         )
+        if response.status == 400:
+            # invalid auth credentials
+            raise SmartTagApiAuthError("invalid email or password")
+        json = await response.json()
 
-    async def async_set_title(self, value: str) -> Any:
-        """Get data from the API."""
-        return await self._api_wrapper(
-            method="patch",
-            url="https://jsonplaceholder.typicode.com/posts/1",
-            data={"title": value},
-            headers={"Content-type": "application/json; charset=UTF-8"},
-        )
+        # refresh token in cookie
+        refresh_token = response.cookies.get("refreshToken")
+        if refresh_token:
+            self._refresh_token = refresh_token.value
+
+        self._access_token = json["token"]
 
     async def _api_wrapper(
         self,
         method: str,
-        url: str,
+        path: str,
         data: dict | None = None,
         headers: dict | None = None,
-    ) -> Any:
-        """Get information from the API."""
+    ):
+        """"""
         try:
             async with async_timeout.timeout(10):
                 response = await self._session.request(
                     method=method,
-                    url=url,
+                    url=self._api_origin / path,
                     headers=headers,
                     json=data,
                 )
-                _verify_response_or_raise(response)
-                return await response.json()
+                _raise_response_error(response)
+                return response
 
         except TimeoutError as exception:
-            msg = f"Timeout error fetching information - {exception}"
-            raise IntegrationBlueprintApiClientCommunicationError(
-                msg,
-            ) from exception
+            raise SmartTagApiNetworkError(f"Timeout error fetching information - {exception}") from exception
         except (aiohttp.ClientError, socket.gaierror) as exception:
-            msg = f"Error fetching information - {exception}"
-            raise IntegrationBlueprintApiClientCommunicationError(
-                msg,
-            ) from exception
+            raise SmartTagApiNetworkError(f"Error fetching information - {exception}") from exception
         except Exception as exception:  # pylint: disable=broad-except
-            msg = f"Something really wrong happened! - {exception}"
-            raise IntegrationBlueprintApiClientError(
-                msg,
-            ) from exception
+            raise SmartTagApiError(f"Something really wrong happened! - {exception}") from exception

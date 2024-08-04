@@ -1,4 +1,4 @@
-"""Adds config flow for Blueprint."""
+"""Adds config flow for SMART Tag"""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from .const import DOMAIN, LOGGER
 
 
 class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for Blueprint."""
+    """Config flow for SMART Tag"""
 
     VERSION = 1
 
