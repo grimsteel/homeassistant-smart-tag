@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.loader import Integration
 
@@ -62,10 +61,41 @@ class RideEndpoint:
 class Ride:
     """A single bus ride"""
 
+    DATE_FORMAT = "%m/%d/%Y %H:%M:%S"
+
+    @classmethod
+    def from_dict(cls, value: dict) -> Ride:
+        """Convert a dict from the API to a Ride."""
+        embarkation = RideEndpoint(
+            time=datetime.strptime(
+                value["embarkationDate"], cls.DATE_FORMAT
+            ).astimezone(),
+            lat=value["embarkationLatitude"],
+            long=value["embarkationLongtitude"],
+        )
+        disembarkation = RideEndpoint(
+            time=datetime.strptime(
+                value["disembarkationDate"], cls.DATE_FORMAT
+            ).astimezone(),
+            lat=value["disembarkationLatitude"],
+            long=value["disembarkationLongtitude"],
+        )
+        return cls(
+            id=value["activityId"],
+            bus_id=value["busName"],
+            start=embarkation,
+            end=disembarkation,
+            driver=value["driverName"],
+            route_name=value["friendlyRouteDisplay"],
+            shift=value["shift"],
+            route_id=value["routeId"],
+        )
+
     id: int
     bus_id: str
     start: RideEndpoint
     end: RideEndpoint
     driver: str
     shift: str
+    route_id: int
     route_name: str

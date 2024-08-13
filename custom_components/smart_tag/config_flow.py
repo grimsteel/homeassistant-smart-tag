@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import time, timedelta
+from typing import TYPE_CHECKING
+
 import voluptuous as vol
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
@@ -15,7 +19,66 @@ from .api import (
     SmartTagApiError,
     SmartTagApiNetworkError,
 )
-from .const import CONF_STUDENT, DOMAIN, LOGGER
+from .const import CONF_ROUTES, CONF_STUDENT, DOMAIN, LOGGER
+
+if TYPE_CHECKING:
+    from custom_components.smart_tag.data import Ride
+
+
+@dataclass
+class Route:
+    """Route polling data"""
+
+    # start embark polling
+    embark_start: time
+
+    # stop polling if they haven't embarked by this time
+    embark_end: time
+
+    # start debark polling this many minutes after embarkation time
+    length: float
+
+    # give up debark polling by this time
+    debark_end: time
+
+    id: int
+    name: str
+
+    DISPLAY_TIME_FORMAT = "%I:%M %p"
+
+    def display(self):
+        """Return a human-readable string representing this route."""
+        return f"**{self.name}** (Embark start: {self.embark_start.strftime(self.DISPLAY_TIME_FORMAT)} • Embark end: {self.embark_end.strftime(self.DISPLAY_TIME_FORMAT)} • Ride length: {self.length:.2f} min • Debark end: {self.debark_end.strftime(self.DISPLAY_TIME_FORMAT)})"
+
+
+def average_route_polling_data(data: list[Ride]):
+    """Average a list of rides into a Route polling data"""
+    embark_start_min = time(23, 59, 59)
+    embark_end_max = time(0, 0)
+    debark_end_max = time(0, 0)
+    length_secs = 0
+
+    # Knuth 1998 - average
+    for i, ride in enumerate(data):
+        embark_start_min = min(embark_start_min, ride.start.time.time())
+        embark_end_max = max(
+            embark_end_max, (ride.start.time + timedelta(minutes=5)).time()
+        )
+        debark_end_max = max(
+            debark_end_max, (ride.end.time + timedelta(minutes=10)).time()
+        )
+        length_secs += ((ride.end.time - ride.start.time).seconds - length_secs) / (
+            i + 1
+        )
+
+    return Route(
+        embark_start=embark_start_min,
+        embark_end=embark_end_max,
+        length=length_secs / 60.0,
+        debark_end=debark_end_max,
+        id=data[0].route_id,
+        name=data[0].route_name,
+    )
 
 
 class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -87,7 +150,7 @@ class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         _errors = {}
         if user_input is not None:
-            self._student_id = int(user_input[CONF_STUDENT])
+            self._student_id = str(user_input[CONF_STUDENT])
             return await self.async_step_choose_times()
 
         students = []
@@ -139,3 +202,49 @@ class SmartTagConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             pass
 
         # get the 50 most recent rides
+        rides = []
+        try:
+            rides = await self._api_client.get_rides(self._student_id, 50)
+        except SmartTagApiAuthError as exception:
+            LOGGER.warning(exception)
+            _errors["base"] = "auth"
+        except SmartTagApiNetworkError as exception:
+            LOGGER.error(exception)
+            _errors["base"] = "connection"
+        except SmartTagApiError as exception:
+            LOGGER.exception(exception)
+            _errors["base"] = "unknown"
+
+        routes: dict[int, list[Ride]] = {}
+        for ride in rides:
+            if ride.route_id in routes:
+                routes[ride.route_id].append(ride)
+            else:
+                routes[ride.route_id] = [ride]
+
+        # average all items together
+        avg_routes = [average_route_polling_data(rides) for rides in routes.values()]
+
+        return self.async_show_form(
+            step_id="choose_times",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_ROUTES): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            # radio buttons
+                            mode=selector.SelectSelectorMode.LIST,
+                            multiple=True,
+                            options=[
+                                # one option for each student
+                                selector.SelectOptionDict(
+                                    value=str(route.id),
+                                    label=route.display(),
+                                )
+                                for route in avg_routes
+                            ],
+                        )
+                    )
+                }
+            ),
+            errors=_errors,
+        )

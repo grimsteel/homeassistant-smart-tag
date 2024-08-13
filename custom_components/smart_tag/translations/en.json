@@ -13,6 +13,13 @@
                 "data": {
                     "student": "Student:"
                 }
+            },
+            "choose_times": {
+                "title": "Choose Routes",
+                "description": "We've guessed some routes from the past 50 bus rides this student has taken. You can **select the ones you want to add**, and/or **manually add routes below**.\n\n### Fields:\n**Embark start:** The time to start polling for the student's embarkation on the bus\n**Embark end:** The time to cancel polling if the student did not get on the bus\n**Ride length:** The number of minutes to wait after the student embarks before polling for debarkation\n**Debark end:** The time to cancel debark polling if for some reason the student does not get off the bus",
+                "data": {
+                    "routes": "Automatically guessed routes:"
+                }
             }
         },
         "error": {

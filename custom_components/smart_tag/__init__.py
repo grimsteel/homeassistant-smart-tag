@@ -13,7 +13,7 @@ from homeassistant.const import Platform
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
 
-from custom_components.smart_tag.const import CONF_API_CLIENT
+from custom_components.smart_tag.const import CONF_ACCESS_TOKEN, CONF_REFRESH_TOKEN
 
 from .api import SmartTagApiClient
 from .coordinator import SmartTagCoordinator
@@ -40,11 +40,13 @@ async def async_setup_entry(
     coordinator = SmartTagCoordinator(
         hass=hass,
     )
+    client = SmartTagApiClient(
+        session=async_get_clientsession(hass),
+        access_token=entry.data[CONF_ACCESS_TOKEN],
+        refresh_token=entry.data[CONF_REFRESH_TOKEN],
+    )
     entry.runtime_data = SmartTagData(
-        client=entry.data[CONF_API_CLIENT]
-        or SmartTagApiClient(
-            session=async_get_clientsession(hass),
-        ),
+        client=client,
         integration=async_get_loaded_integration(hass, entry.domain),
         coordinator=coordinator,
     )
